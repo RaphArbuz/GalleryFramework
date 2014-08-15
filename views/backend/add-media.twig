@@ -1,0 +1,43 @@
+{% extends "backend/layout.twig" %}
+{% import "backend/form.twig" as form %}
+
+{% block content %}
+  <br>
+  <form method="post" enctype="multipart/form-data">
+    <section>
+      {% if medium is not defined or not medium %}
+        <p>
+          File<br>
+          <input type="file" name="media">
+        </p>
+      {% else %}
+        <div class="object-media-preview" style="background-image: url('uploads/images/{{ medium.url }}')"></div>
+				<audio controls>
+					<source src="uploads/sounds/{{ medium.url }}" type="audio/mpeg">
+						Your Browser does not support the audio tag.
+				</audio>
+      {% endif %}
+      
+    {% if fields is defined and fields %}
+      <section>
+        {% for fieldName, field in fields %}
+          {% if field.section is defined and field.section != currentSection %}
+            </section>
+            {% set isEven = not isEven %}        
+            <section {% if not isEven %}class="grey-background"{% endif %}>
+            <h2>{{field.section}}</h2>
+            {% set currentSection = field.section %}
+          {% endif %}
+          {% set fieldValue = (medium ? medium[fieldName]:'') %} 
+          {% if fieldName != 'position' %}
+            {{ form.component(fieldName, field, fieldValue) }}
+          {% endif %}
+        {% endfor %}
+      </section>
+    {% endif %}
+      <p>
+        <input class="btn" type="submit">
+      </p>
+    </section>
+  </form>
+{% endblock %}

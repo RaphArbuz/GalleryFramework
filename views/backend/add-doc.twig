@@ -1,0 +1,47 @@
+{% extends "backend/layout.twig" %}
+{% import "backend/form.twig" as form %}
+
+{% block content %}
+  <br>
+  <form method="post" enctype="multipart/form-data">
+    <section>
+      {% if doc is not defined or not doc %}
+        <p>
+          Doc File<br>
+          <input type="file" name="doc">
+        </p>
+				{% if previewMaxWidth or previewMaxHeight %}
+	        <p>
+	          Preview Image<br>
+	          <input type="file" name="preview">
+	        </p>
+				{%endif%}
+      {% else %}
+        <a href="{{ doc.url }}" target="_blank"><div class="object-media-preview" style="background-image: url('uploads/doc-previews/{{ doc.preview_url }}')"></div></a>
+      {% endif %}
+		</section>
+      
+      {% if fields is defined and fields %}
+        <section>
+          {% for fieldName, field in fields %}
+            {% if field.section is defined and field.section != currentSection %}
+              </section>
+              {% set isEven = not isEven %}        
+              <section {% if not isEven %}class="grey-background"{% endif %}>
+              <h2>{{field.section}}</h2>
+              {% set currentSection = field.section %}
+            {% endif %}
+            {% set fieldValue = (doc ? doc[fieldName]:'') %} 
+            {% if fieldName != 'position' %}
+              {{ form.component(fieldName, field, fieldValue) }}
+            {% endif %}
+          {% endfor %}
+        </section>
+      {% endif %}
+		<section>
+      <p>
+        <input class="btn" type="submit">
+      </p>
+    </section>
+  </form>
+{% endblock %}

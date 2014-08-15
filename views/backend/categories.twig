@@ -1,0 +1,14 @@
+{% extends "backend/layout.twig" %}
+
+{% block content %}
+  <ul id="project-list">
+    {% for slug, category in app['gallery.objects'][app.request.get('objectType')]['tag.classes'] %}
+      <li>
+          <a class="project-item" href="backend/{{app.request.get('objectType')}}/tags/{{ slug }}" style="color: black">
+            {{ category.label }}
+          </a>
+      </li>
+    {% endfor %}
+  </ul>
+  <div style="clear:both"></div>
+{% endblock %}

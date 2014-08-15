@@ -1,0 +1,112 @@
+{% extends "backend/layout.twig" %}
+{% import "backend/form.twig" as form %}
+
+{% block content %}
+  <h1>{{app.request.get('pageName')}}</h1>
+
+  {% if fields|length or not page %}
+    <section>
+      <form method="post">
+        {% for fieldName, field in fields %}
+          {% set fieldValue = (page ? page[fieldName]:'') %} 
+          {{ form.component(fieldName, field, fieldValue) }}
+        {% endfor %}
+          <input class="btn" type="submit">
+      </form>
+    </section>
+  {% endif %}
+  
+    {% if app['gallery.pages'][app.request.get('pageName')]['media'] is defined %}
+      <section>
+          {% for imageType, imageFormat in app['gallery.pages'][app.request.get('pageName')]['media']['image.formats'] %}
+            <span>Pictures - {{imageType}}</span> <span id="uploading-progress-{{imageType}}" style="color: red"></span>
+            <ul class="series sortable dropzone-previews" media_type="{{imageType}}" id="dropzone-{{imageType}}">
+            {% for medium in page.media %}
+                {% if medium.type == imageType %}              
+            			<li class="object-media" object_id="{{medium.id}}">
+                    <div class="object-media-preview" style="background-image: url('uploads/images/{{ medium.url }}')"></div>
+          					<form id="delete-media-form-{{medium.id}}" class="media-form" method="post">
+                      <a class="delete-btn" form="delete-media-form-{{medium.id}}" href="#"><img src="images/gallery/delete.png" /></a>
+          						<input type="hidden" name="delete-media" value="{{medium.id}}">
+          					</form>
+          					<form id="edit-media-form-{{medium.id}}" class="media-form" method="post">
+                      <a class="edit-btn" form="edit-media-form-{{medium.id}}" href="backend/{{ app.request.get('pageName') }}/1/add-media/{{imageType}}/{{medium.id}}"><img src="images/gallery/edit.png" /></a
+          						<input type="hidden" name="delete-media" value="{{medium.id}}">
+          					</form>
+            			</li>                
+                {% endif %}
+              {% endfor %}
+            <div style="clear:both"></div>
+          </ul>
+          <a class="btn" href="backend/{{ app.request.get('pageName') }}/1/add-media/{{imageType}}/new">Add {{imageType|capitalize}}</a> 
+          {% endfor %}
+        <div style="clear:both"></div>
+      </section>
+    {% endif %}
+    
+    {% if app['gallery.pages'][app.request.get('pageName')]['doc'] is defined %}
+        {% for docType, docFormat in app['gallery.pages'][app.request.get('pageName')]['doc']['formats'] %}
+					<section>
+	        <span>Docs - {{docType}}</span>
+	        <ul class="series sortable dropzone-previews" media_type="{{docType}}" id="dropzone-{{docType}}">
+	        {% for doc in page.docs %}
+	            {% if doc.type == docType %}
+	        			<li class="object-media" object_id="{{doc.id}}">
+	                <div class="object-media-preview" style="background-image: url('uploads/doc-previews/{{ doc.preview_url }}')"></div>
+	      					<form id="delete-doc-form-{{doc.id}}" class="media-form" method="post">
+	                  <a class="delete-btn" form="delete-doc-form-{{doc.id}}" href="#"><img src="images/gallery/delete.png" /></a>
+	      						<input type="hidden" name="delete-doc" value="{{doc.id}}">
+	      					</form>
+	      					<form id="edit-doc-form-{{doc.id}}" class="media-form" method="post">
+	                  <a class="edit-btn" form="edit-doc-form-{{doc.id}}" href="backend/{{ app.request.get('pageName') }}/1/add-doc/{{docType}}/{{doc.id}}"><img src="images/gallery/edit.png" /></a
+	      						<input type="hidden" name="delete-doc" value="{{doc.id}}">
+	      					</form>
+	        			</li>                
+	            {% endif %}               
+          {% endfor %}
+        <div style="clear:both"></div>
+      </ul>  
+      <a class="btn" href="backend/{{ app.request.get('pageName') }}/1/add-doc/{{docType}}/new">Add {{docType|capitalize}}</a>        
+		</section>
+      {% endfor %}        
+    </section>
+    {% endif %}  
+    <div id="empty" style="display:none"></div>
+{% endblock %}
+
+{% block javascript %}
+    <script type="text/javascript" src="js/vendor/jscolor/jscolor.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function() {
+        {% if app['gallery.pages'][app.request.get('pageName')]['media'] is defined %}
+          {% for imageType, imageFormat in app['gallery.pages'][app.request.get('pageName')]['media']['image.formats'] %}
+            $("#dropzone-{{imageType}}").dropzone({ 
+              url: "backend/{{app.request.get('pageName')}}/1/add-media/{{imageType}}/new",     
+              paramName: 'media',  
+              previewsContainer: '#empty',
+              uploadprogress: function(file, progress) {
+                if (progress < 100) {
+                  $('#uploading-progress-{{imageType}}').html('(uploading: ' + parseInt(progress) + '%)');                
+                } else {
+                  $('#uploading-progress-{{imageType}}').html('(processing file...)');                
+                }
+              },
+              success: function(file, ret) {location.reload();}
+            });
+          {% endfor %}
+        {% endif %}
+        
+        $('.sortable').sortable().bind('sortupdate', function(e, ui) {
+          var type = ui.item.parent().attr('media_type');
+          var objects = ui.item.parent().children('li');
+          var nbObjects = objects.length;
+          var objectOrderStr = '';
+          for (var i = 0 ; i< nbObjects ; i++)
+          {
+            objectOrderStr += $(objects[i]).attr('object_id') + ';';
+          }
+          $.post('backend/{{ app.request.get('pageName') }}/' + type + '/reorder', {'objectOrder': objectOrderStr});
+        });
+      })
+    </script>
+{% endblock %}

@@ -1,0 +1,42 @@
+<html>
+  <head>
+    <base href="{{app['base_url']}}">
+    <link href="css/backend.css" rel="stylesheet" type="text/css" />
+    <link href="css/jquery-ui.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Open+Sans">
+    <link rel="icon" type="image/png" href="images/favicon.png">     
+    <script type="text/javascript" src="js/vendor/ckeditor/ckeditor.js"></script>
+    <script type="text/javascript" src="js/vendor/jquery.js"></script>
+    <script type="text/javascript" src="js/vendor/modernizr.custom.min.js"></script>
+    <script type="text/javascript" src="js/vendor/jquery-ui.js"></script>
+    <script type="text/javascript" src="js/vendor/dropzone.js"></script>
+    <script type="text/javascript" src="js/vendor/jquery.sortable.min.js"></script>
+    <script type="text/javascript" src="js/backend.js"></script>
+  </head>
+  <body>
+    
+    {% block menu %}
+      <div id="header" class="back-color">
+        <a href="backend" id="header-identity"><img src="images/logo.png" /></a>
+        <ul id="backend-menu">
+          {% for objectType, object in app['gallery.objects'] %}
+            <li><a {% if objectType == app.request.get('objectType') %}class="selected"{% endif %} href="backend/{{objectType}}">{{object.label.plural|upper}}</a></li>
+          {% endfor %}
+          {% if app['gallery.pages']|length %}
+            {% for pageName, page in app['gallery.pages'] %}
+              <li><a href="backend/page/{{pageName}}">{{ pageName|upper }}</a></li>
+            {% endfor %}
+          {% endif %}
+        </ul>
+        <a class="sticker-button" href="backend/logout">LOGOUT</a>
+      </div>
+      <div style="clear:both"></div>
+    {% endblock %}
+    
+    <div id="content">
+      {% block content %}{% endblock %}
+    </div>
+    {% block javascript %}
+    {% endblock %}    
+  </body>
+</html>

@@ -1,0 +1,65 @@
+{% extends "backend/layout.twig" %}
+
+{% block content %}
+
+{# in your template #}
+{% macro getName(object) %}
+	{% if object.name is defined %}
+	  {{ object.name }}
+	{% elseif object.lastname is defined %}
+		  {{ object.lastname }}
+	{% elseif object.name_fr is defined %}
+	  {{ object.name_fr }}                  
+	{% elseif object.title is defined %}
+	  {{ object.title }}
+	{% elseif object.title_fr is defined %}
+	  {{ object.title_fr }}
+	{% else %}
+		{{ app.request.get('objectType') }} {{object.id}}
+	{% endif %}
+{% endmacro %}
+
+{% if (app['gallery.objects'][app.request.get('objectType')]['tag.classes'] is defined and app['gallery.objects'][app.request.get('objectType')]['tag.classes']|length) %}
+  <!-- hidden for now
+    <a style="color: black" href="backend/{{app.request.get('objectType')}}/tags">GERER LES CATEGORIES</a>
+  -->
+{% endif %}
+  
+{% if objects|length > 50 %}
+  <section>
+    <a class="btn" href="backend/{{ app.request.get('objectType') }}/new">ADD</a>
+  </section>
+{% endif %}
+
+  <ul id="object-list" class="sortable">
+    {% for object in objects %}
+      <li id="object_{{object.id}}" object_id="{{object.id}}" class="sortable">
+          <a class="object-item" href="backend/{{ app.request.get('objectType') }}/{{object.id}}" title="{{_self.getName(object)}}">
+              <p>
+								{{_self.getName(object)}}
+              </p>
+            <div {% if object.image is defined %}style="background-image: url('{{'uploads/images/' ~ object.image}}')"{% else %}class="default"{% endif %}></div>
+          </a>
+      </li>
+    {% endfor %}
+  </ul>
+  <div style="clear:both"></div>
+  <section>
+    <a class="btn" href="backend/{{ app.request.get('objectType') }}/new">ADD</a>
+  </section>
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+      $('.sortable').sortable().bind('sortupdate', function(e, ui) {
+        var objects = ui.item.parent().children('li');
+        var nbObjects = objects.length;
+        var objectOrderStr = '';
+        for (var i = 0 ; i< nbObjects ; i++)
+        {
+          objectOrderStr += $(objects[i]).attr('object_id') + ';';
+        }
+        $.post('backend/{{ app.request.get('objectType') }}/reorder', {'objectOrder': objectOrderStr});          
+      });
+    });
+  </script>
+{% endblock %}

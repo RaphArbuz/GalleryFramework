@@ -1,0 +1,32 @@
+{% macro component(fieldName, field, fieldValue) %}
+  <p>
+  <label for="{{fieldValue}}">{{field.label}} {{ (field.multilingual is defined and field.multilingual) ? '(' ~ field.lang|upper ~ ')' : '' }}</label><br>
+  {% if (field.formType == 'text') %}
+    {{ _self.input(fieldName, field, fieldValue) }}
+  {% elseif (field.formType == 'textarea') %}
+    {{ _self.textarea(fieldName, field, fieldValue, false) }}
+  {% elseif (field.formType == 'textareawitheditor') %}
+    {{ _self.textarea(fieldName, field, fieldValue, true) }}
+  {% elseif (field.formType == 'timestamp') %}
+    {{ _self.date(fieldName, field, fieldValue) }}
+  {% elseif (field.formType == 'color') %}
+    {{ _self.color(fieldName, field, fieldValue) }}    
+  {% endif %}
+  </p>
+{% endmacro %}
+
+{% macro input(fieldName, field, fieldValue) %}
+  <input type="text" style="width: 250px" name="{{fieldName}}" id="{{fieldName}}" value="{{fieldValue}}">
+{% endmacro %}
+
+{% macro textarea(fieldName, field, fieldValue, withEditor) %}
+  <textarea id="{{fieldName}}" name="{{fieldName}}" {% if withEditor %}class="editor"{% endif %}>{% autoescape false %}{{fieldValue|raw}}{% endautoescape %}</textarea>
+{% endmacro %}
+
+{% macro date(fieldName, field, fieldValue) %}
+  <input type="text" name="{{fieldName}}" id="{{fieldName}}" value="{{fieldValue|date('Ymd')}}">
+{% endmacro %}
+
+{% macro color(fieldName, field, fieldValue) %}
+  <input type="text" id="{{fieldName}}" class="color" name="{{fieldName}}" value="{{fieldValue}}">
+{% endmacro %}
