@@ -20,7 +20,7 @@
 {% endmacro %}
 
 {% macro textarea(fieldName, field, fieldValue, withEditor) %}
-  <textarea id="{{fieldName}}" name="{{fieldName}}" {% if withEditor %}class="editor"{% endif %}>{% autoescape false %}{{fieldValue|raw}}{% endautoescape %}</textarea>
+  <textarea style="width: 350px; height: 150px" id="{{fieldName}}" name="{{fieldName}}" {% if withEditor %}class="editor"{% endif %}>{% autoescape false %}{{fieldValue|raw}}{% endautoescape %}</textarea>
 {% endmacro %}
 
 {% macro date(fieldName, field, fieldValue) %}

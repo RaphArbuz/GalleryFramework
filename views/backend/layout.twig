@@ -17,18 +17,21 @@
     
     {% block menu %}
       <div id="header" class="back-color">
-        <a href="backend" id="header-identity"><img src="images/logo.png" /></a>
+        <a href="backend" id="header-identity"><img src="images/gallery/identity.png" /></a>
         <ul id="backend-menu">
           {% for objectType, object in app['gallery.objects'] %}
             <li><a {% if objectType == app.request.get('objectType') %}class="selected"{% endif %} href="backend/{{objectType}}">{{object.label.plural|upper}}</a></li>
           {% endfor %}
-          {% if app['gallery.pages']|length %}
+          {% if app['gallery.pages'] is defined and app['gallery.pages']|length %}
             {% for pageName, page in app['gallery.pages'] %}
               <li><a href="backend/page/{{pageName}}">{{ pageName|upper }}</a></li>
             {% endfor %}
           {% endif %}
         </ul>
-        <a class="sticker-button" href="backend/logout">LOGOUT</a>
+        <div id="logout-btn">
+          <a class="btn" href="backend/logout">LOGOUT</a>
+        </div>
+        <div class="drop-shadow"></div>
       </div>
       <div style="clear:both"></div>
     {% endblock %}

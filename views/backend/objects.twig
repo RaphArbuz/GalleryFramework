@@ -31,14 +31,14 @@
   </section>
 {% endif %}
 
-  <ul id="object-list" class="sortable">
+  <ul id="object-list" class="object-list sortable">
     {% for object in objects %}
       <li id="object_{{object.id}}" object_id="{{object.id}}" class="sortable">
           <a class="object-item" href="backend/{{ app.request.get('objectType') }}/{{object.id}}" title="{{_self.getName(object)}}">
               <p>
 								{{_self.getName(object)}}
               </p>
-            <div {% if object.image is defined %}style="background-image: url('{{'uploads/images/' ~ object.image}}')"{% else %}class="default"{% endif %}></div>
+            <div {% if object.images is defined %}style="background-image: url('{{'uploads/images/' ~ object.images|first|first}}')"{% else %}class="default"{% endif %}></div>
           </a>
       </li>
     {% endfor %}

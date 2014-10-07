@@ -11,84 +11,93 @@
     </div>
     <br>
   {% endif %}
-  <form method="post">
-    {% set currentSection = '' %}
-    {% set isEven = true %}
-    <section>
-    {% for fieldName, field in fields %}
-      {% if field.section is defined and field.section != currentSection %}
-        </section>
-        {% set isEven = not isEven %}        
-        <section {% if not isEven %}class="grey-background"{% endif %}>
-        <h2>{{field.section}}</h2>
-        {% set currentSection = field.section %}
-      {% endif %}
-      {% set fieldValue = (object ? object[fieldName]:'') %} 
-      {% if fieldName != 'position' %}
-        {{ form.component(fieldName, field, fieldValue) }}
-      {% endif %}
-    {% endfor %}
-  </section>
-		{% if (object) %}
-	    {% for category,tags in potentialTags %}
-	      {{ app['gallery.objects'][app.request.get('objectType')]['tag.classes'][category]['label']}}
-	      <select name="tags[{{category}}]">
-	          <option value=""></option>
-	        {% for tag in tags %}
-	          <option value="{{tag.id}}" {{ (object is defined and object.tags is defined and tag.id in object.tags|keys) ? 'selected="selected"':''  }}>{{tag.name}}</option>
-	        {% endfor %}
-	      </select>
-	      <br/>
-	    {% endfor %}
-    
-	    <section>
-	    {% for table, values in potentialCrossingValues %}
-	    <h2>{{table}}s</h2>
-	      {% for value in values %}
-	        <input type="checkbox" name="crossings[{{table}}][]" value="{{value.id}}" 
-	        {% if object[table] is defined %}
-	          {% for obj in object[table] %}
-	            {% if value.id == obj.id %}checked{% endif %} 
-	          {% endfor %}
-	        {% endif %}
-	        />
-	        {% if value.name is defined %}{{value.name}}{% else %}{{value.title}}{% endif %}<br>
-	      {% endfor %}
-	    {% endfor %}    
-	    </section>
-		{%endif%}
-    
-    <section>
-      <input class="btn" type="submit" value="Confirmer">
+  
+  {# fields #}
+  {% if hasFieldsToDisplay %}
+    <form method="post">
+      {% set currentSection = '' %}
+      {% set isEven = true %}
+      <section>
+      {% for fieldName, field in fields %}
+        {% if field.section is defined and field.section != currentSection %}
+          </section>
+          {% set isEven = not isEven %}        
+          <section {% if not isEven %}class="grey-background"{% endif %}>
+          <h2>{{field.section}}</h2>
+          {% set currentSection = field.section %}
+        {% endif %}
+        {% set fieldValue = (object ? object[fieldName]:'') %} 
+        {% if fieldName != 'position' %}
+          {{ form.component(fieldName, field, fieldValue) }}
+        {% endif %}
+      {% endfor %}
     </section>
-    <section>
-    </section>
-  </form>
+  		{% if (object) %}
+  	    {% for category,tags in potentialTags %}
+  	      {{ app['gallery.objects'][app.request.get('objectType')]['tag.classes'][category]['label']}}
+  	      <select name="tags[{{category}}]">
+  	          <option value=""></option>
+  	        {% for tag in tags %}
+  	          <option value="{{tag.id}}" {{ (object is defined and object.tags is defined and tag.id in object.tags|keys) ? 'selected="selected"':''  }}>{{tag.name}}</option>
+  	        {% endfor %}
+  	      </select>
+  	      <br/>
+  	    {% endfor %}
+    
+  	    <section>
+  	    {% for table, values in potentialCrossingValues %}
+  	    <h2>{{table}}s</h2>
+  	      {% for value in values %}
+  	        <input type="checkbox" name="crossings[{{table}}][]" value="{{value.id}}" 
+  	        {% if object[table] is defined %}
+  	          {% for obj in object[table] %}
+  	            {% if value.id == obj.id %}checked{% endif %} 
+  	          {% endfor %}
+  	        {% endif %}
+  	        />
+  	        {% if value.name is defined %}{{value.name}}{% else %}{{value.title}}{% endif %}<br>
+  	      {% endfor %}
+  	    {% endfor %}    
+  	    </section>
+  		{%endif%}
+    
+      <section>
+        <input class="btn" type="submit" value="Confirmer">
+      </section>
+      <section>
+      </section>
+    </form>
+  {% endif %}
+  {# end fields #}
 
   {% if (object) %}
     {% if app['gallery.objects'][app.request.get('objectType')]['media'] is defined %}
       <section>
           {% for imageType, imageFormat in app['gallery.objects'][app.request.get('objectType')]['media']['image.formats'] %}
             <span>Pictures - {{imageType}} (W {{imageFormat.maxWidth}} x H {{imageFormat.maxHeight}} px)</span> <span id="uploading-progress-{{imageType}}" style="color: red"></span>
-            <ul class="series sortable dropzone-previews" media_type="{{imageType}}" id="dropzone-{{imageType}}">
-            {% for medium in object.media %}
-                {% if medium.type == imageType %}              
-            			<li class="object-media" object_id="{{medium.id}}">
-                    <div class="object-media-preview" style="background-image: url('uploads/images/{{ medium.url }}')"></div>
-          					<form id="delete-media-form-{{medium.id}}" class="media-form" method="post">
-                      <a class="delete-btn" form="delete-media-form-{{medium.id}}" href="#"><img src="images/gallery/delete.png" /></a>
-          						<input type="hidden" name="delete-media" value="{{medium.id}}">
-          					</form>
-          					<form id="edit-media-form-{{medium.id}}" class="media-form" method="post">
-                      <a class="edit-btn" form="edit-media-form-{{medium.id}}" href="backend/{{ app.request.get('objectType') }}/{{object.id}}/add-media/{{imageType}}/{{medium.id}}"><img src="images/gallery/edit.png" /></a
-          						<input type="hidden" name="delete-media" value="{{medium.id}}">
-          					</form>
-            			</li>                
-                {% endif %}
-              {% endfor %}
-            <div style="clear:both"></div>
-          </ul>
-          <a class="btn" href="backend/{{ app.request.get('objectType') }}/{{object.id}}/add-media/{{imageType}}/new">Add {{imageType|capitalize}}</a> 
+            <div class="sub-section">
+              <ul class="series sortable dropzone-previews" media_type="{{imageType}}" id="dropzone-{{imageType}}">
+              {% for medium in object.media %}
+                  {% if medium.type == imageType %}              
+              			<li class="object-media" object_id="{{medium.id}}">
+                      <div class="object-media-preview" style="background-image: url('uploads/images/{{ medium.url }}')"></div>
+            					<form id="delete-media-form-{{medium.id}}" class="media-form" method="post">
+                        <a class="delete-btn" form="delete-media-form-{{medium.id}}" href="#"><img src="images/gallery/delete.png" /></a>
+            						<input type="hidden" name="delete-media" value="{{medium.id}}">
+            					</form>
+            					<form id="edit-media-form-{{medium.id}}" class="media-form" method="post">
+                        {% if imageFormat.fields is defined %}
+                          <a class="edit-btn" form="edit-media-form-{{medium.id}}" href="backend/{{ app.request.get('objectType') }}/{{object.id}}/add-media/{{imageType}}/{{medium.id}}"><img src="images/gallery/edit.png" /></a
+                        {% endif %}
+            						<input type="hidden" name="delete-media" value="{{medium.id}}">
+            					</form>
+              			</li>                
+                  {% endif %}
+                {% endfor %}
+              <div style="clear:both"></div>
+            </ul>
+            <a class="btn" href="backend/{{ app.request.get('objectType') }}/{{object.id}}/add-media/{{imageType}}/new">Add {{imageType|capitalize}}</a> 
+          </div>
           {% endfor %}
 					{% if app['gallery.objects'][app.request.get('objectType')]['media']['sound.formats'] is defined %}
 	          {% for soundType, soundFormat in app['gallery.objects'][app.request.get('objectType')]['media']['sound.formats'] %}
@@ -125,25 +134,26 @@
     {% endif %}
     {% if app['gallery.objects'][app.request.get('objectType')]['doc'] is defined %}
       <section>
-      <span>Docs</span>
       {% set currentDocSection = '' %}
-        {% for doc in object.docs %}
-	        {% if doc.type != currentDocSection %}
-	          <p style="clear:both">{{doc.type|upper}}</p>
-	            {% set currentDocSection = doc.type %}
-	        {% endif %}
-	  			<div class="object-media">
-	          <div class="object-media-preview" style="background-image: url('uploads/doc-previews/{{ doc.preview_url }}')"></div>
-	            {{doc.name}}<br>
-	  					<form id="delete-doc-form-{{doc.id}}" method="post">
-	              <a class="delete-btn" form="delete-doc-form-{{doc.id}}" style="color: red" href="#">Supprimer</a>
-	  						<input type="hidden" name="delete-doc" value="{{doc.id}}">
-	  					</form>
-	  			</div>
+      <ul class="object-list">
+      {% for doc in object.docs %}
+        {% if doc.type != currentDocSection %}
+          <div style="clear: both; height: 30px"></div>
+          <p><span>Docs - {{doc.type|upper}}</span></p>
+          {% set currentDocSection = doc.type %}
+	      {% endif %}
+        <li class="object-item">          
+          <p>{{doc.name}}</p>           
+          <div class="object-media-preview" style="background-image: url('uploads/doc-previews/{{ doc.preview_url }}')"></div>
+          <form id="delete-doc-form-{{doc.id}}" method="post" class="media-form">
+            <a class="delete-btn" form="delete-doc-form-{{doc.id}}" href="#"><img src="images/gallery/delete.png" /></a>
+            <input type="hidden" name="delete-doc" value="{{doc.id}}">
+          </form>
+        </li>
         {% endfor %}
         <div style="clear:both"></div>
 				{% for docType, docInfo in app['gallery.objects'][app.request.get('objectType')]['doc']['formats'] %}
-					<a class="btn" href="backend/{{ app.request.get('objectType') }}/{{object.id}}/add-doc/{{docType}}">Add Doc</a>
+					<a class="btn" href="backend/{{ app.request.get('objectType') }}/{{object.id}}/add-doc/{{docType}}">Add {{docType}}</a>
 				{% endfor%}
       </section>
     {% endif %}

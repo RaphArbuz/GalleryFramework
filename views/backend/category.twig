@@ -2,7 +2,7 @@
 
 {% block content %}
   <h1>{{ app['gallery.objects'][app.request.get('objectType')]['tag.classes'][category]['label'] }}</h1>
-  <ul id="object-list">
+  <ul id="object-list" class="object-list">
     {% for tag in tags %}
       <li>
           {{ tag.name }}

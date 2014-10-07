@@ -88,8 +88,17 @@ class GalleryControllerProvider implements ControllerProviderInterface {
      {
        return new RedirectResponse($app['base_url'] . 'backend');       
      }
+     
+     $objects = $app['database']->getObjects($objectType, 'all');
+     
+     // page not a list of objects: returns the first object strait away
+     if (isset($app['gallery.objects'][$objectType]['config']['singlePage']) && $app['gallery.objects'][$objectType]['config']['singlePage']) {
+         $object = array_shift($objects);
+         return new RedirectResponse($app['base_url'].'backend/'.$objectType.'/'.$object['id']);
+     }
+     
      return $app['twig']->render('backend/objects.twig', array(
-      'objects' => $app['database']->getObjects($objectType, 'all')
+      'objects' => $objects
      ));
    })->before($mustBeLogged);
    
@@ -147,9 +156,13 @@ class GalleryControllerProvider implements ControllerProviderInterface {
        $object = null;
      }
      
+     $fields = $app['database']->fieldsToFieldList($app['gallery.objects'][$objectType]['fields'], $app['gallery.languages']);
+     $hasFieldsToDisplay = !((count($fields) == 1) && ('position' == key($fields)));
+     
      return $app['twig']->render('backend/object.twig', array(
       'object'       => $object,
-      'fields'        => $app['database']->fieldsToFieldList($app['gallery.objects'][$objectType]['fields'], $app['gallery.languages']),
+      'fields'        => $fields,
+      'hasFieldsToDisplay' => $hasFieldsToDisplay,
       'potentialTags' => $app['database']->getPotentialTags($objectType),
       'potentialCrossingValues' => $app['database']->getPotentialCrossingValues($objectType)        
      ));
@@ -163,6 +176,9 @@ class GalleryControllerProvider implements ControllerProviderInterface {
    ->before($mustBeLogged);
    
    $controllers->match('/backend/{objectType}/{id}/add-media/{mediumType}/{mediumId}', function (Application $app, Request $request, $objectType, $id, $mediumType, $mediumId) {
+       
+       //$uploadsDirPath = __DIR__ . '/../../../../web/uploads/';
+       $uploadsDirPath = __DIR__ . '/../../../../../uploads/';
 		 
 		 $isImage = in_array($mediumType, array_keys($app['gallery.objects'][$objectType]['media']['image.formats']));
 		 
@@ -172,8 +188,8 @@ class GalleryControllerProvider implements ControllerProviderInterface {
      if ('POST' == $request->getMethod()) {
        if ($mediumId == 'new') {
          $file = $request->files->get('media');
-         $tmpDir = __DIR__ . '/../../../../web/uploads/'.$dir.'/tmp/';
-         $destDir = __DIR__ . '/../../../../web/uploads/'.$dir.'/';
+         $tmpDir = $uploadsDirPath.$dir.'/tmp/';
+         $destDir = $uploadsDirPath.$dir.'/';
 				 if ($isImage) {
 	         $destinationFilename = $objectType . '_image_' . $id . '_' . rand(1, 100000) . '.jpg';				 	
 				 } else {
@@ -192,18 +208,18 @@ class GalleryControllerProvider implements ControllerProviderInterface {
 	         $file->move($tmpDir, $file->getClientOriginalName());
 	         ImageHelper::resize($destDir, $tmpDir, $destinationFilename, $file->getClientOriginalName(), $fileFormat['maxWidth'], $fileFormat['maxHeight']);
 	         if (isset($fileFormat['previewMaxWidth'])) {
-	           $destDir = __DIR__ . '/../../../../web/uploads/image-previews/';         
+	           $destDir = $uploadsDirPath.'image-previews/';         
 	           ImageHelper::resize($destDir, $tmpDir, $destinationFilename, $file->getClientOriginalName(), $fileFormat['previewMaxWidth'], $fileFormat['previewMaxHeight']);         
 	         }
 				 } else {
-					 $destDir = __DIR__ . '/../../../../web/uploads/sounds/';
+					 $destDir = $uploadsDirPath.'sounds/';
 	         $file->move($destDir, $destinationFilename);
 				 }
        }
        $app['database']->saveMedium($objectType, isset($destinationFilename) ? $destinationFilename : null, $mediumType, $id, $request->request->all(), $mediumId);
        
        // page names
-       if (in_array($objectType, array_keys($app['gallery.pages']))) {
+       if (isset($app['gallery.pages']) && in_array($objectType, array_keys($app['gallery.pages']))) {
          return new RedirectResponse($app['base_url'] . 'backend/page/' . $objectType);
        }       
        
@@ -218,7 +234,7 @@ class GalleryControllerProvider implements ControllerProviderInterface {
      
      if (isset($app['gallery.objects'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'])) {
        $fields = $app['gallery.objects'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'];
-     } elseif (isset($app['gallery.pages'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'])) {
+     } elseif (isset($app['gallery.pages']) && isset($app['gallery.pages'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'])) {
        $fields = $app['gallery.pages'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'];
      } else {
        $fields = array();
@@ -237,11 +253,14 @@ class GalleryControllerProvider implements ControllerProviderInterface {
    ->before($mustBeLogged);
       
    $controllers->match('/backend/{objectType}/{id}/add-doc/{docType}/{docId}', function (Application $app, Request $request, $objectType, $id, $docType, $docId) {
+       
+       //$uploadsDirPath = __DIR__ . '/../../../../web/uploads/';
+       $uploadsDirPath = __DIR__ . '/../../../../../uploads/';
 
      if ('POST' == $request->getMethod()) {
        if ($docId == 'new') {
          $file = $request->files->get('doc');
-         $destDir = __DIR__ . '/../../../../web/uploads/docs/';
+         $destDir = $uploadsDirPath.'docs/';
          $destinationFilename = $file->getClientOriginalName();
        
          $file->move($destDir, $file->getClientOriginalName());
@@ -250,8 +269,8 @@ class GalleryControllerProvider implements ControllerProviderInterface {
           $previewFile = $request->files->get('preview');
           if ($previewFile) {
           
-            $tmpDir = __DIR__ . '/../../../../web/uploads/doc-previews/tmp/';
-            $destDir = __DIR__ . '/../../../../web/uploads/doc-previews/';
+            $tmpDir = $uploadsDirPath.'doc-previews/tmp/';
+            $destDir = $uploadsDirPath.'doc-previews/';
           
             $previewDestinationFilename = substr($file->getClientOriginalName(), 0, strrpos($file->getClientOriginalName()  , '.')) . '_preview.jpg';
             $previewFile->move($tmpDir, $previewFile->getClientOriginalName());
@@ -268,7 +287,7 @@ class GalleryControllerProvider implements ControllerProviderInterface {
        $app['database']->saveDoc($objectType, $request->get('title'), isset($destinationFilename) ? $destinationFilename  : null, isset($previewDestinationFilename) ? $previewDestinationFilename : null, $docType, $id, $request->request->all(), $docId);
        
        // page names
-       if (in_array($objectType, array_keys($app['gallery.pages']))) {
+       if (isset($app['gallery.pages']) && in_array($objectType, array_keys($app['gallery.pages']))) {
          return new RedirectResponse($app['base_url'] . 'backend/page/' . $objectType);
        }
        // else 
@@ -284,7 +303,7 @@ class GalleryControllerProvider implements ControllerProviderInterface {
      
      if (isset($app['gallery.objects'][$objectType]['doc']['formats'][$docType]['fields'])) {
        $fields = $app['gallery.objects'][$objectType]['doc']['formats'][$docType]['fields'];
-     } elseif (isset($app['gallery.pages'][$objectType]['doc']['formats'][$docType]['fields'])) {
+     } elseif (isset($app['gallery.pages']) && isset($app['gallery.pages'][$objectType]['doc']['formats'][$docType]['fields'])) {
        $fields = $app['gallery.pages'][$objectType]['doc']['formats'][$docType]['fields'];
      } else {
        $fields = array();

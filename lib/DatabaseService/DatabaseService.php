@@ -30,20 +30,21 @@ class DatabaseService {
 	  return mysql_query($query);
   }
   
-  function getObjects($objectType, $mediaFormats = array(), $tags = array(), $orderBy = 'position', $getCrossings = false)
+  function getObjects($objectType, $mediaFormats = array(), $docType = null, $tags = array(), $orderBy = 'position', $getCrossings = false)
   {
     $fieldList = array_keys($this->fieldsToFieldList($this->app['gallery.objects'][$objectType]['fields'], $this->app['gallery.languages']));
     
     $ret = array();
     
-    $query = 'select id, `' . implode('`, `', $fieldList) . '` from ' . $objectType . ' order by `' . $orderBy . '` ASC, `created_at` DESC';
+    $query = 'select `id`, `created_at`, `' . implode('`, `', $fieldList) . '` from ' . $objectType . ' order by `' . $orderBy . '` ASC, `created_at` DESC';
     $result = $this->execute($query);
     while ($row = mysql_fetch_row($result))
     {
       $ret[$row[0]] = array(
-        'id'   => $row[0]
+        'id'           => $row[0],
+        'created_at'   => $row[1],
       );
-      $i = 1;
+      $i = 2;
       foreach($fieldList as $field)
       {
         $ret[$row[0]][$field] = $row[$i++];
@@ -58,37 +59,76 @@ class DatabaseService {
          
     }
 
+
+    // media
+    
     if ($mediaFormats && count($ret))
     {
-			if (!is_array($mediaFormats)) {
-				$mediaFormats = array($mediaFormats);
-			}
-			
-      $query = 'select ' . $objectType . '_id, url, title from ' . $objectType . '_media where ';
-      if ($mediaFormats != array('all')) {
-				$mediaStrs = array();
-				foreach ($mediaFormats as $format) {
-					$mediaStrs[] = '\''.$format.'\'';
-				}
-        $query .= 'type IN  ('.implode(',', $mediaStrs).') and ';
-      }
-      $query .=  $objectType . '_id in (' . implode(',', array_keys($ret)) . ')';
-      $result = $this->execute($query);
-      if ($result) {
-        while ($row = mysql_fetch_row($result))
-        {
-					if (strpos($row[1], 'image') !== false) {
-	          $ret[$row[0]]['images'][] = $row[1];						
-					} else {
-	          $ret[$row[0]]['sounds'][] = array(
-							'url' => $row[1],
-							'title' => $row[2]
-	          );						
-					}
-        }        
-      }
+        if (!is_array($mediaFormats)) {
+            $mediaFormats = array($mediaFormats);
+        }
+        
+        if ($mediaFormats == array('all')) {
+            $result = $this->execute('select ' . $objectType . '_id, type, url from ' . $objectType . '_media where ' .
+                 $objectType . '_id in (' . implode(',', array_keys($ret)) . ')');            
+            while ($row = mysql_fetch_row($result))
+            {
+              $ret[$row[0]]['images'][$row[1]][] = $row[2];
+            }            
+        } else {
+            $query = 'select ' . $objectType . '_id, url, name from ' . $objectType . '_media where ';
+            if ($mediaFormats != array('all')) {
+                $mediaStrs = array();
+                foreach ($mediaFormats as $format) {
+                    $mediaStrs[] = '\''.$format.'\'';
+                }
+                $query .= 'type IN  ('.implode(',', $mediaStrs).') and ';
+            }
+            $query .=  $objectType . '_id in (' . implode(',', array_keys($ret)) . ')';
+          $result = $this->execute($query);
+          if ($result) {
+            while ($row = mysql_fetch_row($result))
+            {
+    					if (strpos($row[1], 'image') !== false) {
+    	          $ret[$row[0]]['images'][] = $row[1];						
+    					} else {
+    	          $ret[$row[0]]['sounds'][] = array(
+    							'url' => $row[1],
+    							'title' => $row[2]
+    	          );						
+    					}
+            }        
+          }
+                      
+        }
+
     }
     
+    // docs
+    if ($docType && count($ret))
+    {
+        if ($docType == 'all') {
+            $result = $this->execute('select ' . $objectType . '_id, type, url, name from ' . $objectType . '_doc where ' .
+                 $objectType . '_id in (' . implode(',', array_keys($ret)) . ')');            
+            while ($row = mysql_fetch_row($result))
+            {
+              $ret[$row[0]]['docs'][$row[1]][] = array(
+                  'url' => $row[2],
+                  'name' => $row[3]
+              );
+            }       
+            
+        } else {
+            $result = $this->execute('select ' . $objectType . '_id, url from ' . $objectType . '_doc where type = \'' . $docType . '\' and ' . $objectType . '_id in (' . implode(',', array_keys($ret)) . ')');            
+            while ($row = mysql_fetch_row($result))
+            {
+              $ret[$row[0]]['doc'] = $row[1];
+            }            
+        }        
+       
+    }
+    
+    // crossings    
     if ($getCrossings && isset($this->app['gallery.objects'][$objectType]['crossings']) && ($crossings = $this->app['gallery.objects'][$objectType]['crossings'])) {    
       foreach($crossings as $crossing) {
         $fieldList = array_keys($this->fieldsToFieldList($this->app['gallery.objects'][$crossing]['fields'], $this->app['gallery.languages']));
@@ -252,6 +292,8 @@ class DatabaseService {
       $tags = array();
     }
     
+    $fields['created_at'] = date('Y-m-d H:i:s');
+    
     if (isset($fields['crossings'])) {
       $crossings = $fields['crossings'];
       unset($fields['crossings']);
@@ -263,12 +305,14 @@ class DatabaseService {
     {
       $fieldNamesStr = implode('`,`', array_keys($fields));
       
-      $fieldVars = array();
-      foreach ($fields as $field)
-      {
-        $fieldVars[] = addslashes($field);
-      }
-      //$fieldVars = $fields;
+      if (!get_magic_quotes_gpc()) {
+          $fieldVars = array();
+          foreach ($fields as $field)
+          {
+            $fieldVars[] = addslashes($field);
+          }          
+      } else
+          $fieldVars = $fields;
       
       $fieldStr = '\'' . implode('\',\'', $fieldVars) . '\'';
       $query = 'insert into ' . $objectType . ' (`' . $fieldNamesStr . '`) values (' . $fieldStr . ')';
@@ -294,7 +338,10 @@ class DatabaseService {
           $query .= ', ';
         }
 //        $query .= '`' . $name . '` = \'' . addslashes($value) . '\' ';
-        $query .= '`' . $name . '` = \'' . addslashes($value) . '\' ';
+        if (get_magic_quotes_gpc())
+            $query .= '`' . $name . '` = \'' . $value . '\' ';
+        else
+            $query .= '`' . $name . '` = \'' . addslashes($value) . '\' ';
       }
       $query .=' where id =' . $id;   
       if (!$this->execute($query))
@@ -346,7 +393,7 @@ class DatabaseService {
     if (isset($this->app['gallery.objects'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'])) {
       $fields = $this->app['gallery.objects'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'];
       $fieldList = array_keys($this->fieldsToFieldList($fields, $this->app['gallery.languages']));      
-    } elseif (isset($this->app['gallery.pages'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'])) {
+    } elseif (isset($this->app['gallery.pages']) && isset($this->app['gallery.pages'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'])) {
       $fields = $this->app['gallery.pages'][$objectType]['media'][$type.'.formats'][$mediumType]['fields'];
       $fieldList = array_keys($this->fieldsToFieldList($fields, $this->app['gallery.languages']));      
     } else {
